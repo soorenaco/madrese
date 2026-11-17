@@ -133,7 +133,9 @@ class SchoolManagerGate
         $m = SchoolMembership::query()
             ->where('school_id', $schoolId)
             ->where('user_id', $deputy->id)
-            ->whereIn('status', ['active', 'invited'])  
+            ->whereIn('status', ['active', 'invited'])
+            ->firstOrFail();
+
         if ($m->is_primary_manager) {
             abort(422, 'برای مدیر اصلی محدودیت تعریف نمی‌شود.');
         }

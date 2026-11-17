@@ -18,7 +18,8 @@ class ClassRosterController extends Controller
 {
     public function __construct(
         protected PermissionService $permissions,
-        protected ClassRosterService $roster
+        protected ClassRosterService $roster, 
+        protected SchoolManagerGate $gate  
     ) {}
 
     public function show(Request $request, SchoolClass $school_class): Response
@@ -178,10 +179,17 @@ class ClassRosterController extends Controller
             return;
         }
 
-        if ($this->permissions->managesSchool($user, $class->school_id)) {
+        if (! $this->permissions->managesSchool($user, $class->school_id)) {
+            abort(403, 'به این کلاس دسترسی ندارید.');
+        }
+
+        // مدیر اصلی همیشه اجازه دارد
+        if ($this->gate->isPrimaryManager($user, $class->school_id)) {
             return;
         }
 
-        abort(403, 'به این کلاس دسترسی ندارید.');
-    }
-}
+        // معاون فقط با can_invite_students
+        if (! $this->gate->allows($user, $class->school_id, 'can_invite_students')) {
+            abort(403, 'اجازه دعوت یا مدیریت دانش‌آموز را ندارید.');
+        }
+}}
