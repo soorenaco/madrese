@@ -19,7 +19,8 @@ class SchoolController extends Controller
 {
     public function __construct(
         protected SchoolService $schools,
-        protected PermissionService $permissions
+        protected PermissionService $permissions,
+        protected SchoolManagerGate $gate
     ) {}
 
     public function index(Request $request): AnonymousResourceCollection
@@ -48,13 +49,20 @@ class SchoolController extends Controller
 
     public function update(SchoolRequest $request, School $school): SchoolResource
     {
+        $user = $request->user();
+
         $this->assertManages($request, $school);
+
+        if (! $this->gate->isPrimaryManager($user, $school->id)
+            && ! $this->gate->allows($user, $school->id, 'can_edit_school')) {
+            abort(403, 'اجازه ویرایش اطلاعات مدرسه را ندارید.');
+        }
 
         $school = $this->schools->update($school, $request->validated());
 
         return new SchoolResource($school->loadCount(['classes', 'memberships']));
     }
-
+    
     public function destroy(Request $request, School $school): Response|JsonResponse
     {
         if (! $this->schools->delete($school)) {
@@ -68,6 +76,12 @@ class SchoolController extends Controller
 
     protected function assertManages(Request $request, School $school): void
     {
-        abort_unless($this->permissions->managesSchool($request->user(), $school->id), 403, 'به این مدرسه دسترسی ندارید.');
+        $user = $request->user();
+
+        abort_unless($this->permissions->managesSchool($user, $school->id), 403, 'به این مدرسه دسترسی ندارید.');
+
+        // برای عملیات ویرایش (update) محدودیت can_edit_school را هم چک کن
+        // (اگر فقط می‌خواهی روی update اعمال شود، می‌توانی شرط را به متد update منتقل کنی)
     }
+
 }

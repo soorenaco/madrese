@@ -12,11 +12,15 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
+use App\Modules\School\Services\SchoolManagerGate;
+
+
 class SchoolController extends Controller
 {
     public function __construct(
         protected PermissionService $permissions,
-        protected SchoolService $schools
+        protected SchoolService $schools,
+        protected SchoolManagerGate $gate
     ) {}
 
     public function index(Request $request): Response
@@ -100,10 +104,18 @@ class SchoolController extends Controller
 
         return redirect()->route('panel.school')->with('success', 'مدرسه و مدیر اصلی با موفقیت ایجاد شد.');
     }
-    
+        
     public function edit(Request $request, School $school): Response
     {
-        abort_unless($this->permissions->managesSchool($request->user(), $school->id), 403);
+        $user = $request->user();
+
+        abort_unless($this->permissions->managesSchool($user, $school->id), 403);
+
+        // مدیر اصلی و ادمین آزاد هستند
+        if (! $this->gate->isPrimaryManager($user, $school->id)
+            && ! $this->gate->allows($user, $school->id, 'can_edit_school')) {
+            abort(403, 'اجازه ویرایش اطلاعات مدرسه را ندارید.');
+        }
 
         return Inertia::render('School/Form', [
             'school' => $school,
@@ -112,7 +124,14 @@ class SchoolController extends Controller
 
     public function update(Request $request, School $school): RedirectResponse
     {
-        abort_unless($this->permissions->managesSchool($request->user(), $school->id), 403);
+        $user = $request->user();
+
+        abort_unless($this->permissions->managesSchool($user, $school->id), 403);
+
+        if (! $this->gate->isPrimaryManager($user, $school->id)
+            && ! $this->gate->allows($user, $school->id, 'can_edit_school')) {
+            abort(403, 'اجازه ویرایش اطلاعات مدرسه را ندارید.');
+        }
 
         $data = $this->validated($request, $school->id);
 
@@ -124,7 +143,7 @@ class SchoolController extends Controller
         $this->schools->update($school, $data);
 
         return redirect()->route('panel.school')->with('success', 'مدرسه به‌روزرسانی شد.');
-    }
+    }    
 
     public function destroy(Request $request, School $school): RedirectResponse
     {
