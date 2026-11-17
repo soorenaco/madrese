@@ -106,7 +106,7 @@ class SchoolManagerGate
         $m = SchoolMembership::query()
             ->where('school_id', $schoolId)
             ->where('user_id', $target->id)
-            ->where('status', 'active')
+            ->whereIn('status', ['active', 'invited'])
             ->firstOrFail();
 
         $m->update([
@@ -133,9 +133,7 @@ class SchoolManagerGate
         $m = SchoolMembership::query()
             ->where('school_id', $schoolId)
             ->where('user_id', $deputy->id)
-            ->where('status', 'active')
-            ->firstOrFail();
-
+            ->whereIn('status', ['active', 'invited'])  
         if ($m->is_primary_manager) {
             abort(422, 'برای مدیر اصلی محدودیت تعریف نمی‌شود.');
         }
