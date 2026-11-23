@@ -13,12 +13,15 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Validation\Rule;
+use App\Modules\School\Services\SchoolManagerGate;
+
 
 class ClassRosterController extends Controller
 {
     public function __construct(
         protected PermissionService $permissions,
-        protected ClassRosterService $roster
+        protected ClassRosterService $roster,
+        protected SchoolManagerGate $gate
     ) {}
 
     public function index(Request $request, SchoolClass $class): AnonymousResourceCollection
@@ -176,9 +179,19 @@ class ClassRosterController extends Controller
         if ($this->permissions->isPlatformAdmin($user)) {
             return;
         }
-        if ($this->permissions->managesSchool($user, $class->school_id)) {
+
+        if (! $this->permissions->managesSchool($user, $class->school_id)) {
+            abort(403, 'به این کلاس دسترسی ندارید.');
+        }
+
+        if ($this->gate->isPrimaryManager($user, $class->school_id)) {
             return;
         }
-        abort(403, 'به این کلاس دسترسی ندارید.');
+
+        if (! $this->gate->allows($user, $class->school_id, 'can_invite_students')) {
+            abort(403, 'اجازه دعوت یا مدیریت دانش‌آموز را ندارید.');
+        }
     }
+
+
 }

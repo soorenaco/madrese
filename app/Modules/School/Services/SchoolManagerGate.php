@@ -107,6 +107,7 @@ class SchoolManagerGate
             ->where('school_id', $schoolId)
             ->where('user_id', $target->id)
             ->whereIn('status', ['active', 'invited'])
+            ->whereNull('ended_at')
             ->firstOrFail();
 
         $m->update([
@@ -134,6 +135,7 @@ class SchoolManagerGate
             ->where('school_id', $schoolId)
             ->where('user_id', $deputy->id)
             ->whereIn('status', ['active', 'invited'])
+            ->whereNull('ended_at')
             ->firstOrFail();
 
         if ($m->is_primary_manager) {

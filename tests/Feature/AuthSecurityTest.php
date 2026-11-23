@@ -9,8 +9,7 @@ use App\Modules\Auth\Models\SchoolMembership;
 use App\Modules\Auth\Models\User;
 use App\Modules\Auth\Services\PermissionService;
 use App\Modules\School\Models\School;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Cache;
+ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 

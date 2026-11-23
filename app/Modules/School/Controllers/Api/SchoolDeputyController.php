@@ -24,7 +24,7 @@ class SchoolDeputyController extends Controller
 
         $managers = SchoolMembership::query()
             ->where('school_id', $school->id)
-            ->where('status', 'active')
+            ->whereIn('status', ['active', 'invited'])  
             ->whereNull('ended_at')
             ->whereHas('roles', fn ($q) => $q->where('roles.code', 'school_manager'))
             ->with('user:id,display_name,mobile_e164')
@@ -35,6 +35,7 @@ class SchoolDeputyController extends Controller
                 'mobile'             => $m->user?->mobile_e164,
                 'is_primary_manager' => (bool) $m->is_primary_manager,
                 'manager_limits'     => $m->manager_limits,
+                'status'             => $m->status,        
             ]);
 
         return response()->json([
@@ -42,7 +43,8 @@ class SchoolDeputyController extends Controller
             'meta' => [
                 'limit_keys' => SchoolManagerGate::LIMIT_KEYS,
                 'can_manage' => $this->gate->isPrimaryManager($request->user(), $school->id)
-                    || $this->permissions->isPlatformAdmin($request->user()),
+                    || $this->permissions->isPlatformAdmin($request->user())
+                    || $this->gate->allows($request->user(), $school->id, 'can_manage_deputies'),
             ],
         ]);
     }

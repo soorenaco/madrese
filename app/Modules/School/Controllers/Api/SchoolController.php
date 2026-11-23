@@ -13,6 +13,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use App\Modules\School\Controllers\Api\SchoolDeputyController;
+use App\Modules\School\Services\SchoolManagerGate;
+
 
 
 class SchoolController extends Controller
@@ -46,7 +48,7 @@ class SchoolController extends Controller
 
         return new SchoolResource($school->loadCount(['classes', 'memberships']));
     }
-
+    
     public function update(SchoolRequest $request, School $school): SchoolResource
     {
         $user = $request->user();
@@ -62,7 +64,7 @@ class SchoolController extends Controller
 
         return new SchoolResource($school->loadCount(['classes', 'memberships']));
     }
-    
+
     public function destroy(Request $request, School $school): Response|JsonResponse
     {
         if (! $this->schools->delete($school)) {
