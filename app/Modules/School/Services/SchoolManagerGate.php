@@ -23,7 +23,10 @@ class SchoolManagerGate
         'can_manage_schedule',
         'can_promote_class',
         'can_edit_school',
+        'can_promote_class',
+        'can_edit_school',
         'can_manage_deputies',
+        'can_manage_online_classes',             
     ];
 
     public function __construct(

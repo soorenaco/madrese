@@ -26,7 +26,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/users/{user}/membership', [UserManageController::class, 'assignMembership'])->name('panel.users.membership');
     });
 
-    Route::get('/settings', fn () => \Inertia\Inertia::render('Settings/Index'))
+    Route::get('/settings', [\App\Modules\OnlineClass\Controllers\Web\SystemSettingsController::class, 'index'])
         ->middleware('role:admin')
         ->name('panel.settings');
+        
 });

@@ -34,4 +34,11 @@ export const menuItems = [
         icon: 'settings',
         adminOnly: true,
     },
+    {
+        label: 'کلاس آنلاین',
+        href: '/online-classes',
+        icon: 'video',
+        permission: 'online_class.view',
+        roles: ['student', 'teacher', 'school_manager', 'admin'],
+    },
 ];

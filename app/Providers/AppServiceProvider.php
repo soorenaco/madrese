@@ -23,6 +23,7 @@ class AppServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(app_path('Modules/Auth/Database/Migrations'));
         $this->loadMigrationsFrom(app_path('Modules/School/Database/Migrations'));
         $this->loadMigrationsFrom(app_path('Modules/Class/Database/Migrations'));
+        $this->loadMigrationsFrom(app_path('Modules/OnlineClass/Database/Migrations'));
 
         // API routes
         Route::prefix('api/v1')
@@ -31,6 +32,7 @@ class AppServiceProvider extends ServiceProvider
                 Route::group([], base_path('app/Modules/Auth/Routes/api.php'));
                 Route::group([], base_path('app/Modules/School/Routes/api.php'));
                 Route::group([], base_path('app/Modules/Class/Routes/api.php'));
+                Route::group([], base_path('app/Modules/OnlineClass/Routes/api.php'));
             });
 
         // Web routes
@@ -39,6 +41,7 @@ class AppServiceProvider extends ServiceProvider
                 Route::group([], base_path('app/Modules/Auth/Routes/web.php'));
                 Route::group([], base_path('app/Modules/School/Routes/web.php'));
                 Route::group([], base_path('app/Modules/Class/Routes/web.php'));
+                Route::group([], base_path('app/Modules/OnlineClass/Routes/web.php'));
             });
     }
 

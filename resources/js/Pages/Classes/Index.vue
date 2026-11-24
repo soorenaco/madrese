@@ -94,6 +94,7 @@ function destroyClass(id) {
                         <td class="px-4 py-3">
                             <div class="flex flex-wrap gap-2 justify-end">
                                 <Link :href="`/classes/${item.id}/roster`" class="text-violet-700 hover:underline text-xs">اعضا</Link>
+                                <Link :href="`/classes/${item.id}/online`" class="text-violet-700 hover:underline text-xs">آنلاین</Link>
                                 <Link :href="`/classes/${item.id}/schedule`" class="text-violet-700 hover:underline text-xs">برنامه</Link>
                                 <Link :href="`/classes/${item.id}/promote`" class="text-violet-700 hover:underline text-xs">سال تحصیلی</Link>
                                 <Link :href="`/classes/${item.id}/edit`" class="text-violet-700 hover:underline text-xs">ویرایش</Link>

@@ -1,11 +1,11 @@
 <?php
 
 namespace Database\Seeders;
-namespace App\Modules\Auth\Database\Seeders;   // ← از Database\Seeders
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+
 
 class PermissionSeeder extends Seeder
 {
@@ -51,6 +51,12 @@ class PermissionSeeder extends Seeder
             // ─── Evaluation ───
             ['code' => 'evaluation.manage', 'resource' => 'evaluation', 'action' => 'manage', 'description' => 'ثبت و انتشار نتیجه'],
             ['code' => 'evaluation.view', 'resource' => 'evaluation', 'action' => 'view', 'description' => 'مشاهده نتایج منتشرشده'],
+
+
+            // ─── Online Class ───
+            ['code' => 'online_class.manage', 'resource' => 'online_class', 'action' => 'manage', 'description' => 'ثبت و مدیریت کلاس آنلاین'],
+            ['code' => 'online_class.view', 'resource' => 'online_class', 'action' => 'view', 'description' => 'مشاهده کلاس‌های آنلاین'],
+            ['code' => 'online_class.join', 'resource' => 'online_class', 'action' => 'join', 'description' => 'ورود به جلسهٔ آنلاین'],
         ];
 
         foreach ($permissions as $permission) {
