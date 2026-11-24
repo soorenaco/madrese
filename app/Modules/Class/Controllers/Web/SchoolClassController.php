@@ -83,10 +83,24 @@ class SchoolClassController extends Controller
             $schoolsQuery->whereIn('id', $managedIds ?: ['00000000-0000-0000-0000-000000000000']);
         }
 
+        $schools = $schoolsQuery->get(['id', 'name']);
+
+        // باگ‌رفته: اگر مدیر فقط به یک مدرسه دسترسی دارد، آن مدرسه به‌صورت
+        // خودکار به‌عنوان مدرسه‌ی کلاس انتخاب می‌شود و فیلد در فرم قفل می‌گردد
+        // تا کاربر مجبور به انتخاب دستی نباشد و «اسم مدرسه بالا بیاید».
+        $defaultSchoolId = null;
+        $schoolLocked = false;
+        if (! $isAdmin && $schools->count() === 1) {
+            $defaultSchoolId = $schools->first()->id;
+            $schoolLocked = true;
+        }
+
         return Inertia::render('Classes/Form', [
-            'classItem' => null,
-            'schools'   => $schoolsQuery->get(['id', 'name']),
-            'teachers'  => $this->teacherOptions($isAdmin ? null : $managedIds),
+            'classItem'       => null,
+            'schools'         => $schools,
+            'defaultSchoolId' => $defaultSchoolId,
+            'schoolLocked'    => $schoolLocked,
+            'teachers'        => $this->teacherOptions($isAdmin ? null : $managedIds),
         ]);
     }
 
@@ -117,9 +131,11 @@ class SchoolClassController extends Controller
         }
 
         return Inertia::render('Classes/Form', [
-            'classItem' => $school_class->load(['school:id,name', 'teacher:id,display_name']),
-            'schools'   => $schoolsQuery->get(['id', 'name']),
-            'teachers'  => $this->teacherOptions($isAdmin ? null : $managedIds),
+            'classItem'       => $school_class->load(['school:id,name', 'teacher:id,display_name']),
+            'schools'         => $schoolsQuery->get(['id', 'name']),
+            'defaultSchoolId' => null,
+            'schoolLocked'    => true,
+            'teachers'        => $this->teacherOptions($isAdmin ? null : $managedIds),
         ]);
     }
 

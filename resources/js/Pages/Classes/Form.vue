@@ -6,12 +6,14 @@ const props = defineProps({
     classItem: { type: Object, default: null },
     schools: { type: Array, default: () => [] },
     teachers: { type: Array, default: () => [] },
+    defaultSchoolId: { type: String, default: null },
+    schoolLocked: { type: Boolean, default: false },
 });
 
 const isEdit = !!props.classItem;
 
 const form = useForm({
-    school_id: props.classItem?.school_id ?? '',
+    school_id: props.classItem?.school_id ?? props.defaultSchoolId ?? '',
     name: props.classItem?.name ?? '',
     grade: props.classItem?.grade ?? '',
     academic_year: props.classItem?.academic_year ?? '',
@@ -37,12 +39,20 @@ function submit() {
             </div>
 
             <form class="bg-white rounded-2xl border border-slate-200 p-5 space-y-4" @submit.prevent="submit">
+                <input v-if="schoolLocked" type="hidden" name="school_id" :value="form.school_id" />
                 <div>
                     <label class="block text-sm text-slate-600 mb-1">مدرسه *</label>
-                    <select v-model="form.school_id" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm">
+                    <select
+                        v-model="form.school_id"
+                        :disabled="schoolLocked"
+                        class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm disabled:bg-slate-50 disabled:text-slate-700"
+                    >
                         <option value="" disabled>انتخاب مدرسه</option>
                         <option v-for="s in schools" :key="s.id" :value="s.id">{{ s.name }}</option>
                     </select>
+                    <p v-if="schoolLocked && form.school_id" class="text-xs text-slate-500 mt-1">
+                        مدرسه‌ی این کلاس به‌صورت خودکار انتخاب شد.
+                    </p>
                     <p v-if="form.errors.school_id" class="text-xs text-rose-600 mt-1">{{ form.errors.school_id }}</p>
                 </div>
 

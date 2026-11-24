@@ -58,6 +58,24 @@ class SchoolManagerGate
     }
 
     /**
+     * قانون کاری: هر کاربر فقط در «یک» مدرسه می‌تواند نقش school_manager
+     * داشته باشد (چه به‌عنوان مدیر اصلی و چه معاون). این متد جلوی انتساب
+     * نقش مدیر در مدرسه‌ی دوم را می‌گیرد.
+     *
+     * @param  string  $schoolId  مدرسه‌ای که قرار است کاربر در آن مدیر شود.
+     * @throws \Symfony\Component\HttpKernel\Exception\HttpException 422 اگر کاربر قبلاً مدیر مدرسه‌ی دیگری است.
+     */
+    public function assertUserNotManagerElsewhere(User $user, string $schoolId): void
+    {
+        $existing = SchoolMembership::managerMembershipsElsewhere($user->id, $schoolId);
+
+        if ($existing->isNotEmpty()) {
+            $other = $existing->first()->school?->name ?? 'مدرسه‌ی دیگری';
+            abort(422, "این کاربر قبلاً در «{$other}» نقش مدیر دارد و نمی‌تواند در دو مدرسه هم‌زمان مدیر باشد.");
+        }
+    }
+
+    /**
      * آیا این عمل برای کاربر در مدرسه مجاز است؟
      */
     public function allows(User $user, string $schoolId, string $ability): bool

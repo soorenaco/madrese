@@ -106,6 +106,13 @@ class UserManageController extends Controller
             abort(403, 'اجازه اعطای نقش مدیر مدرسه را ندارید.');
         }
 
+        // قانون کاری: هر کاربر فقط در یک مدرسه می‌تواند نقش school_manager
+        // داشته باشد. در مسیر «اعطای نقش دستی» هم باید همین محدودیت رعایت شود.
+        if ($role->code === 'school_manager') {
+            app(\App\Modules\School\Services\SchoolManagerGate::class)
+                ->assertUserNotManagerElsewhere($user, $data['school_id']);
+        }
+
         // آیا این اولین school_manager این مدرسه هست؟
         $isFirstManager = $role->code === 'school_manager'
             && ! SchoolMembership::query()

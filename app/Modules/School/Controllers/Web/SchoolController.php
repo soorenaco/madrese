@@ -63,10 +63,11 @@ class SchoolController extends Controller
         $managerName = $data['manager_display_name'] ?? null;
         unset($data['manager_mobile'], $data['manager_display_name']);
 
-        // ساخت مدرسه
-        $school = $this->schools->create($data);
-
-        // ساخت مدیر اصلی
+        // حل‌وفصل کاربرِ مدیرِ اصلی پیش از ساخت مدرسه.
+        // قانون کاری: هر کاربر فقط در یک مدرسه می‌تواند مدیر باشد. اگر این
+        // بررسی بعد از ساخت مدرسه انجام می‌شد، در صورت خطا یک مدرسه‌ی یتیم
+        // بدون مدیر در دیتابیس باقی می‌ماند؛ بنابراین باید قبل از ساخت بررسی شود.
+        $managerUser = null;
         if ($managerMobile) {
             $normalized = app(\App\Modules\Class\Services\ClassRosterService::class)
                 ->normalizeMobile($managerMobile);
@@ -81,6 +82,16 @@ class SchoolController extends Controller
                 ]);
             }
 
+            // تأیید قانون تک‌مدرسه‌ای مدیر (school_id هنوز برابر null است
+            // چون مدرسه هنوز ساخته نشده؛ پس هر عضویت مدرسِ موجود، «در جای دیگر» است).
+            $this->gate->assertUserNotManagerElsewhere($managerUser, '00000000-0000-0000-0000-000000000000');
+        }
+
+        // ساخت مدرسه
+        $school = $this->schools->create($data);
+
+        // ساخت مدیر اصلی
+        if ($managerUser) {
             $membership = \App\Modules\Auth\Models\SchoolMembership::create([
                 'id'                 => (string) \Illuminate\Support\Str::uuid(),
                 'school_id'          => $school->id,

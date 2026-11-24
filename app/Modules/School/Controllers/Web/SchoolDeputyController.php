@@ -75,6 +75,11 @@ class SchoolDeputyController extends Controller
             ]);
         }
 
+        // قانون کاری: هر کاربر فقط در یک مدرسه می‌تواند نقش school_manager
+        // (چه مدیر اصلی، چه معاون) داشته باشد. اگر کاربر قبلاً در مدرسه‌ی
+        // دیگری مدیر است، افزودن‌اش به‌عنوان معاون این مدرسه مجاز نیست.
+        $this->gate->assertUserNotManagerElsewhere($user, $school->id);
+
         // آیا این اولین school_manager این مدرسه هست؟
         $isFirstManager = ! SchoolMembership::query()
             ->where('school_id', $school->id)
