@@ -101,10 +101,8 @@ function providerLabel(p) {
                 :key="i"
                 :href="link.url || '#'"
                 v-html="link.label"
-                class="px-3 py-1.5 rounded-lg border"
-                :class="link.active ? 'bg-violet-700 text-white border-violet-700' : 'bg-white border-slate-200'"
-                :class="{ 'pointer-events-none text-slate-300': !link.url }"
-            />
+                class="px-3 py-1.5 rounded-lg border" :class="[ link.active ? 'bg-violet-700 text-white border-violet-700' : 'bg-white border-slate-200', !link.url ? 'pointer-events-none text-slate-300' : '', ]"  
+                />
         </div>
     </PanelLayout>
 </template>
