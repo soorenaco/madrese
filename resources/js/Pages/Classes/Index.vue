@@ -1,7 +1,18 @@
 <script setup>
-import { ref, watch } from 'vue';
-import { Link, router, usePage } from '@inertiajs/vue3';
+import { ref } from 'vue';
+import { Link } from '@inertiajs/vue3';
 import PanelLayout from '../../Layouts/PanelLayout.vue';
+import PageHeader from '../../Components/Ui/PageHeader.vue';
+import SectionCard from '../../Components/Ui/SectionCard.vue';
+import Pagination from '../../Components/Ui/Pagination.vue';
+import StatusBadge from '../../Components/Ui/StatusBadge.vue';
+import PrimaryButton from '../../Components/Ui/PrimaryButton.vue';
+import TextInput from '../../Components/Ui/TextInput.vue';
+import SelectInput from '../../Components/Ui/SelectInput.vue';
+import Icon from '../../Components/Icon.vue';
+import ConfirmDialog from '../../Components/Ui/ConfirmDialog.vue';
+import { useToast } from '../../composables/useToast';
+import { router } from '@inertiajs/vue3';
 
 const props = defineProps({
     classes: { type: Object, required: true },
@@ -9,104 +20,143 @@ const props = defineProps({
     filters: { type: Object, default: () => ({ q: '', school_id: '' }) },
 });
 
-const page = usePage();
+const toast = useToast();
+
 const q = ref(props.filters.q || '');
 const schoolId = ref(props.filters.school_id || '');
 
-function search() {
-    router.get('/classes', {
-        q: q.value || undefined,
-        school_id: schoolId.value || undefined,
-    }, { preserveState: true, replace: true });
-}
-
 let searchTimer = null;
-watch(q, () => {
+function search() {
     clearTimeout(searchTimer);
-    searchTimer = setTimeout(search, 300);
-});
-watch(schoolId, search);
-
-function destroyClass(id) {
-    if (!confirm('حذف این کلاس؟')) return;
-    router.delete(`/classes/${id}`);
+    searchTimer = setTimeout(() => {
+        router.get('/classes', {
+            q: q.value || undefined,
+            school_id: schoolId.value || undefined,
+        }, { preserveState: true, replace: true, preserveScroll: true });
+    }, 300);
 }
+
+const confirmState = ref({ show: false, id: null, name: '', loading: false });
+function askDelete(item) {
+    confirmState.value = { show: true, id: item.id, name: item.name, loading: false };
+}
+function doDelete() {
+    confirmState.value.loading = true;
+    router.delete(`/classes/${confirmState.value.id}`, {
+        preserveScroll: true,
+        onFinish: () => {
+            confirmState.value.show = false;
+            confirmState.value.loading = false;
+        },
+        onSuccess: () => toast.success('کلاس حذف شد.'),
+        onError: () => toast.error('حذف کلاس با خطا مواجه شد.'),
+    });
+}
+
+const rows = props.classes.data || [];
 </script>
 
 <template>
     <PanelLayout>
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-            <div>
-                <h1 class="text-xl font-bold">کلاس‌ها</h1>
-                <p class="text-sm text-slate-500">مدیریت کلاس‌های مدارس</p>
+        <PageHeader title="کلاس‌ها" description="مدیریت کلاس‌های مدارس">
+            <template #icon><Icon name="layers" :size="22" /></template>
+            <template #actions>
+                <PrimaryButton @click="$inertia.visit('/classes/create')">
+                    <Icon name="plus" :size="16" />
+                    کلاس جدید
+                </PrimaryButton>
+            </template>
+        </PageHeader>
+
+        <!-- فیلترها -->
+        <div class="mt-6 mb-4 flex flex-col gap-3 sm:flex-row">
+            <div class="flex-1 sm:max-w-xs">
+                <TextInput
+                    v-model="q"
+                    type="search"
+                    placeholder="جستجو نام یا پایه..."
+                    icon="search"
+                    @input="search"
+                />
             </div>
-            <Link
-                href="/classes/create"
-                class="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-violet-700 text-white text-sm font-medium hover:bg-violet-800"
-            >
-                کلاس جدید
-            </Link>
+            <div class="sm:w-56">
+                <SelectInput v-model="schoolId" placeholder="همه مدارس" @change="search">
+                    <option v-for="s in schools" :key="s.id" :value="s.id">{{ s.name }}</option>
+                </SelectInput>
+            </div>
         </div>
 
-        <div v-if="page.props.flash?.success" class="mb-4 rounded-xl bg-emerald-50 text-emerald-800 text-sm px-4 py-3 border border-emerald-100">
-            {{ page.props.flash.success }}
-        </div>
+        <SectionCard flat>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-clay-200 bg-clay-100/60 text-slate-600">
+                            <th class="px-4 py-3 text-right font-semibold">نام کلاس</th>
+                            <th class="hidden px-4 py-3 text-right font-semibold sm:table-cell">مدرسه</th>
+                            <th class="hidden px-4 py-3 text-right font-semibold md:table-cell">پایه</th>
+                            <th class="hidden px-4 py-3 text-right font-semibold md:table-cell">سال</th>
+                            <th class="px-4 py-3 text-center font-semibold">وضعیت</th>
+                            <th class="px-4 py-3 text-center font-semibold">عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-clay-200/70">
+                        <tr v-for="item in rows" :key="item.id" class="transition-colors hover:bg-clay-100/50">
+                            <td class="px-4 py-3.5 font-medium text-slate-800">{{ item.name }}</td>
+                            <td class="hidden px-4 py-3.5 text-slate-600 sm:table-cell">{{ item.school?.name || '—' }}</td>
+                            <td class="hidden px-4 py-3.5 text-slate-600 md:table-cell">{{ item.grade || '—' }}</td>
+                            <td class="hidden px-4 py-3.5 text-slate-600 md:table-cell">{{ item.academic_year || '—' }}</td>
+                            <td class="px-4 py-3.5 text-center">
+                                <StatusBadge :variant="item.status === 'active' ? 'success' : 'neutral'">
+                                    {{ item.status === 'active' ? 'فعال' : 'بایگانی' }}
+                                </StatusBadge>
+                            </td>
+                            <td class="px-4 py-3.5">
+                                <div class="flex flex-wrap items-center justify-center gap-1">
+                                    <Link :href="`/classes/${item.id}/roster`" class="clay-btn-ghost px-2 py-1 text-xs">
+                                        <Icon name="users" :size="14" /> اعضا
+                                    </Link>
+                                    <Link :href="`/classes/${item.id}/online`" class="clay-btn-ghost px-2 py-1 text-xs">
+                                        <Icon name="video" :size="14" /> آنلاین
+                                    </Link>
+                                    <Link :href="`/classes/${item.id}/schedule`" class="clay-btn-ghost px-2 py-1 text-xs">
+                                        <Icon name="calendar" :size="14" /> برنامه
+                                    </Link>
+                                    <Link :href="`/classes/${item.id}/promote`" class="clay-btn-ghost px-2 py-1 text-xs">
+                                        <Icon name="trending-up" :size="14" /> سال
+                                    </Link>
+                                    <Link :href="`/classes/${item.id}/edit`" class="clay-btn-ghost px-2 py-1 text-xs">
+                                        <Icon name="edit" :size="14" />
+                                    </Link>
+                                    <button type="button" class="clay-btn-ghost px-2 py-1 text-xs !text-danger-600" @click="askDelete(item)">
+                                        <Icon name="trash" :size="14" />
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr v-if="!rows.length">
+                            <td colspan="6" class="px-4 py-12 text-center text-slate-400">
+                                <div class="flex flex-col items-center gap-2">
+                                    <Icon name="layers" :size="28" />
+                                    <span>کلاسی ثبت نشده است.</span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <template v-if="classes.links?.length > 1" #footer>
+                <Pagination :links="classes.links" />
+            </template>
+        </SectionCard>
 
-        <div class="mb-4 flex flex-col sm:flex-row gap-3">
-            <input
-                v-model="q"
-                type="search"
-                placeholder="جستجو نام یا پایه..."
-                class="w-full sm:w-64 rounded-xl border border-slate-200 px-3 py-2 text-sm"
-            />
-            <select v-model="schoolId" class="w-full sm:w-56 rounded-xl border border-slate-200 px-3 py-2 text-sm">
-                <option value="">همه مدارس</option>
-                <option v-for="s in schools" :key="s.id" :value="s.id">{{ s.name }}</option>
-            </select>
-        </div>
-
-        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-            <table class="w-full text-sm text-right">
-                <thead class="bg-slate-50 text-slate-500">
-                    <tr>
-                        <th class="px-4 py-3 font-medium">نام کلاس</th>
-                        <th class="px-4 py-3 font-medium hidden sm:table-cell">مدرسه</th>
-                        <th class="px-4 py-3 font-medium hidden md:table-cell">پایه</th>
-                        <th class="px-4 py-3 font-medium hidden md:table-cell">سال</th>
-                        <th class="px-4 py-3 font-medium">وضعیت</th>
-                        <th class="px-4 py-3 font-medium">عملیات</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="item in classes.data" :key="item.id" class="border-t border-slate-100">
-                        <td class="px-4 py-3 font-medium">{{ item.name }}</td>
-                        <td class="px-4 py-3 hidden sm:table-cell">{{ item.school?.name || '—' }}</td>
-                        <td class="px-4 py-3 hidden md:table-cell">{{ item.grade || '—' }}</td>
-                        <td class="px-4 py-3 hidden md:table-cell">{{ item.academic_year || '—' }}</td>
-                        <td class="px-4 py-3">
-                            <span
-                                class="inline-block text-xs px-2 py-0.5 rounded-md border"
-                                :class="item.status === 'active' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-slate-50 text-slate-600 border-slate-200'"
-                            >
-                                {{ item.status === 'active' ? 'فعال' : 'بایگانی' }}
-                            </span>
-                        </td>
-                        <td class="px-4 py-3">
-                            <div class="flex flex-wrap gap-2 justify-end">
-                                <Link :href="`/classes/${item.id}/roster`" class="text-violet-700 hover:underline text-xs">اعضا</Link>
-                                <Link :href="`/classes/${item.id}/online`" class="text-violet-700 hover:underline text-xs">آنلاین</Link>
-                                <Link :href="`/classes/${item.id}/schedule`" class="text-violet-700 hover:underline text-xs">برنامه</Link>
-                                <Link :href="`/classes/${item.id}/promote`" class="text-violet-700 hover:underline text-xs">سال تحصیلی</Link>
-                                <Link :href="`/classes/${item.id}/edit`" class="text-violet-700 hover:underline text-xs">ویرایش</Link>
-                                <button type="button" class="text-rose-600 hover:underline text-xs" @click="destroyClass(item.id)">حذف</button>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr v-if="!classes.data?.length">
-                        <td colspan="6" class="px-4 py-10 text-center text-slate-400">کلاسی ثبت نشده است.</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+        <ConfirmDialog
+            :show="confirmState.show"
+            title="حذف کلاس"
+            :message="`آیا از حذف کلاس «${confirmState.name}» مطمئن هستید؟`"
+            confirm-text="حذف کن"
+            :loading="confirmState.loading"
+            @confirm="doDelete"
+            @cancel="confirmState.show = false"
+        />
     </PanelLayout>
 </template>

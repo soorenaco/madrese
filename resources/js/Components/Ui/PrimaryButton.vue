@@ -2,20 +2,28 @@
 defineProps({
     type: { type: String, default: 'submit' },
     disabled: Boolean,
-})
+    loading: Boolean,
+    icon: String,
+    block: Boolean,
+});
 </script>
 
 <template>
     <button
         :type="type"
-        :disabled="disabled"
-        :class="[
-            'inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold shadow-sm transition focus:outline-none focus:ring-2 focus:ring-violet-500/40',
-            disabled
-                ? 'cursor-not-allowed bg-slate-100 text-slate-400'
-                : 'bg-violet-600 text-white hover:bg-violet-700'
-        ]"
+        :disabled="disabled || loading"
+        :class="['clay-btn-primary inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold', block && 'w-full']"
     >
+        <svg
+            v-if="loading"
+            class="animate-spin"
+            width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" aria-hidden="true"
+        >
+            <path d="M21 12a9 9 0 1 1-6.2-8.5" />
+        </svg>
+        <slot name="icon" v-else-if="$slots.icon" />
         <slot />
     </button>
 </template>

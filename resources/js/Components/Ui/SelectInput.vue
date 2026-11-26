@@ -2,22 +2,31 @@
 defineProps({
     modelValue: [String, Number],
     invalid: Boolean,
-})
+    disabled: Boolean,
+    id: String,
+    placeholder: String,
+});
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue']);
 </script>
 
 <template>
     <select
+        :id="id"
         :value="modelValue"
+        :disabled="disabled"
+        class="clay-input block w-full px-4 py-2.5 text-sm appearance-none pl-9"
+        :class="invalid && '!border-danger-400 ring-2 ring-danger-500/20'"
         @change="emit('update:modelValue', $event.target.value)"
-        :class="[
-            'block w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm transition focus:outline-none focus:ring-2 focus:ring-inset',
-            invalid
-                ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/30'
-                : 'border-slate-300 focus:border-violet-500 focus:ring-violet-500/30'
-        ]"
     >
+        <option v-if="placeholder" value="" disabled>{{ placeholder }}</option>
         <slot />
     </select>
+    <svg
+        class="pointer-events-none -mt-7 ml-3 inline-block text-slate-400 align-middle"
+        width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+    >
+        <path d="m6 9 6 6 6-6" />
+    </svg>
 </template>

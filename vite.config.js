@@ -14,9 +14,10 @@ export default defineConfig({
             ],
             refresh: true,
             fonts: [
-                bunny('Instrument Sans', {
-                    weights: [400, 500, 600],
-                }),
+                // Persian primary UI font
+                bunny('Vazirmatn', { weights: ['400', '500', '600', '700'] }),
+                // Latin companion for numerals/code alignment
+                bunny('Instrument Sans', { weights: ['400', '500', '600'] }),
             ],
         }),
         tailwindcss(),

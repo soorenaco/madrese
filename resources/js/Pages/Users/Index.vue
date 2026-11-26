@@ -1,7 +1,17 @@
 <script setup>
-import { ref, watch } from 'vue';
-import { router, useForm, usePage } from '@inertiajs/vue3';
+import { ref } from 'vue';
 import PanelLayout from '../../Layouts/PanelLayout.vue';
+import PageHeader from '../../Components/Ui/PageHeader.vue';
+import SectionCard from '../../Components/Ui/SectionCard.vue';
+import StatusBadge from '../../Components/Ui/StatusBadge.vue';
+import TextInput from '../../Components/Ui/TextInput.vue';
+import SelectInput from '../../Components/Ui/SelectInput.vue';
+import FormField from '../../Components/Ui/FormField.vue';
+import PrimaryButton from '../../Components/Ui/PrimaryButton.vue';
+import SecondaryButton from '../../Components/Ui/SecondaryButton.vue';
+import Icon from '../../Components/Icon.vue';
+import { useToast } from '../../composables/useToast';
+import { router, useForm } from '@inertiajs/vue3';
 
 const props = defineProps({
     users: { type: Object, required: true },
@@ -10,26 +20,35 @@ const props = defineProps({
     schools: { type: Array, default: () => [] },
 });
 
-const page = usePage();
+const toast = useToast();
+
 const q = ref(props.filters.q || '');
 const status = ref(props.filters.status || '');
 
+let searchTimer = null;
 function search() {
-    router.get('/users', {
-        q: q.value || undefined,
-        status: status.value || undefined,
-    }, { preserveState: true, replace: true });
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+        router.get('/users', {
+            q: q.value || undefined,
+            status: status.value || undefined,
+        }, { preserveState: true, replace: true, preserveScroll: true });
+    }, 300);
 }
 
-let searchTimer = null;
-watch(q, () => {
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(search, 300);
-});
-watch(status, search);
+function statusVariant(s) {
+    return { active: 'success', invited: 'info', suspended: 'warning', blocked: 'danger', ended: 'neutral' }[s] || 'neutral';
+}
+function statusLabel(s) {
+    return { active: 'فعال', invited: 'دعوت‌شده', suspended: 'معلق', blocked: 'مسدود', ended: 'پایان‌یافته' }[s] || s;
+}
 
 function setStatus(userId, newStatus) {
-    router.put(`/users/${userId}/status`, { status: newStatus }, { preserveScroll: true });
+    router.put(`/users/${userId}/status`, { status: newStatus }, {
+        preserveScroll: true,
+        onSuccess: () => toast.success('وضعیت کاربر به‌روزرسانی شد.'),
+        onError: () => toast.error('به‌روزرسانی وضعیت ناموفق بود.'),
+    });
 }
 
 const membershipForm = useForm({
@@ -45,118 +64,139 @@ function openAssign(userId) {
     membershipForm.reset();
     membershipForm.status = 'active';
 }
-
+function closeAssign() {
+    activeUserId.value = null;
+}
 function submitMembership() {
     if (!activeUserId.value) return;
     membershipForm.post(`/users/${activeUserId.value}/membership`, {
         preserveScroll: true,
         onSuccess: () => {
-            activeUserId.value = null;
-            membershipForm.reset();
+            toast.success('عضویت با موفقیت ثبت شد.');
+            closeAssign();
         },
+        onError: () => toast.error('ثبت عضویت ناموفق بود.'),
     });
 }
+
+const rows = props.users.data || [];
 </script>
 
 <template>
     <PanelLayout>
-        <div class="mb-6">
-            <h1 class="text-xl font-bold">کاربران</h1>
-            <p class="text-sm text-slate-500">مدیریت وضعیت و عضویت کاربران</p>
+        <PageHeader title="کاربران" description="مدیریت وضعیت و عضویت کاربران">
+            <template #icon><Icon name="users" :size="22" /></template>
+        </PageHeader>
+
+        <!-- فیلترها -->
+        <div class="mt-6 mb-4 flex flex-col gap-3 sm:flex-row">
+            <div class="flex-1 sm:max-w-xs">
+                <TextInput
+                    v-model="q"
+                    type="search"
+                    placeholder="جستجو نام یا موبایل..."
+                    icon="search"
+                    @input="search"
+                />
+            </div>
+            <div class="sm:w-44">
+                <SelectInput v-model="status" placeholder="همه وضعیت‌ها" @change="search">
+                    <option value="active">فعال</option>
+                    <option value="invited">دعوت‌شده</option>
+                    <option value="blocked">مسدود</option>
+                </SelectInput>
+            </div>
         </div>
 
-        <div v-if="page.props.flash?.success" class="mb-4 rounded-xl bg-emerald-50 text-emerald-800 text-sm px-4 py-3 border border-emerald-100">
-            {{ page.props.flash.success }}
-        </div>
-
-        <div class="mb-4 flex flex-col sm:flex-row gap-3">
-            <input
-                v-model="q"
-                type="search"
-                placeholder="جستجو نام یا موبایل..."
-                class="w-full sm:w-64 rounded-xl border border-slate-200 px-3 py-2 text-sm"
-            />
-            <select v-model="status" class="w-full sm:w-40 rounded-xl border border-slate-200 px-3 py-2 text-sm">
-                <option value="">همه وضعیت‌ها</option>
-                <option value="active">فعال</option>
-                <option value="invited">دعوت‌شده</option>
-                <option value="blocked">مسدود</option>
-            </select>
-        </div>
-
+        <!-- لیست کاربران -->
         <div class="space-y-3">
-            <div
-                v-for="user in users.data"
-                :key="user.id"
-                class="bg-white rounded-2xl border border-slate-200 p-4"
-            >
-                <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                    <div>
-                        <div class="font-medium">{{ user.display_name || 'بدون نام' }}</div>
-                        <div class="text-xs font-mono text-slate-500 mt-0.5" dir="ltr">{{ user.mobile_e164 }}</div>
-                        <div class="flex flex-wrap gap-1 mt-2">
+            <SectionCard v-for="user in rows" :key="user.id" flat>
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2">
+                            <div class="clay-card-flat flex h-10 w-10 items-center justify-center text-sm font-bold text-brand-700">
+                                {{ (user.display_name || '؟').charAt(0) }}
+                            </div>
+                            <div>
+                                <div class="font-semibold text-slate-800">{{ user.display_name || 'بدون نام' }}</div>
+                                <div class="text-xs font-mono text-slate-500" dir="ltr">{{ user.mobile_e164 }}</div>
+                            </div>
+                        </div>
+                        <div class="mt-2 flex flex-wrap gap-1.5">
                             <template v-for="m in user.memberships || []" :key="m.id">
-                                <span
+                                <StatusBadge
                                     v-for="role in m.roles || []"
                                     :key="role.id"
-                                    class="text-[11px] px-1.5 py-0.5 rounded-md bg-violet-50 text-violet-700 border border-violet-100"
-                                >
-                                    {{ role.title }} · {{ m.school?.name || 'مدرسه' }}
-                                </span>
+                                    variant="primary"
+                                >{{ role.title }} · {{ m.school?.name || 'مدرسه' }}</StatusBadge>
                             </template>
                             <span v-if="!(user.memberships || []).length" class="text-xs text-slate-400">بدون عضویت</span>
                         </div>
                     </div>
 
-                    <div class="flex flex-wrap gap-2 items-center">
-                        <select
-                            class="rounded-lg border border-slate-200 text-xs px-2 py-1.5"
-                            :value="user.status"
-                            @change="setStatus(user.id, $event.target.value)"
-                        >
-                            <option value="active">فعال</option>
-                            <option value="invited">دعوت‌شده</option>
-                            <option value="blocked">مسدود</option>
-                        </select>
-                        <button
-                            type="button"
-                            class="text-xs px-3 py-1.5 rounded-lg border border-violet-200 text-violet-700 hover:bg-violet-50"
-                            @click="openAssign(user.id)"
-                        >
+                    <div class="flex flex-wrap items-center gap-2">
+                        <div class="w-32">
+                            <SelectInput
+                                :model-value="user.status"
+                                @change="setStatus(user.id, $event.target.value)"
+                            >
+                                <option value="active">فعال</option>
+                                <option value="invited">دعوت‌شده</option>
+                                <option value="blocked">مسدود</option>
+                            </SelectInput>
+                        </div>
+                        <SecondaryButton @click="openAssign(user.id)">
+                            <Icon name="user-plus" :size="15" />
                             عضویت / نقش
-                        </button>
+                        </SecondaryButton>
                     </div>
                 </div>
 
+                <!-- فرم تخصیص عضویت -->
                 <form
                     v-if="activeUserId === user.id"
-                    class="mt-4 pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-4 gap-3"
+                    class="clay-card-inset mt-4 p-4"
                     @submit.prevent="submitMembership"
                 >
-                    <select v-model="membershipForm.school_id" class="rounded-xl border border-slate-200 px-3 py-2 text-sm" required>
-                        <option value="" disabled>مدرسه</option>
-                        <option v-for="s in schools" :key="s.id" :value="s.id">{{ s.name }}</option>
-                    </select>
-                    <select v-model="membershipForm.role_id" class="rounded-xl border border-slate-200 px-3 py-2 text-sm" required>
-                        <option value="" disabled>نقش</option>
-                        <option v-for="r in roles" :key="r.id" :value="r.id">{{ r.title }}</option>
-                    </select>
-                    <select v-model="membershipForm.status" class="rounded-xl border border-slate-200 px-3 py-2 text-sm">
-                        <option value="active">فعال</option>
-                        <option value="invited">دعوت‌شده</option>
-                        <option value="suspended">معلق</option>
-                        <option value="ended">پایان‌یافته</option>
-                    </select>
-                    <div class="flex gap-2">
-                        <button type="submit" class="flex-1 rounded-xl bg-violet-700 text-white text-sm py-2" :disabled="membershipForm.processing">
-                            ثبت
-                        </button>
-                        <button type="button" class="px-3 rounded-xl border border-slate-200 text-sm" @click="activeUserId = null">بستن</button>
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <FormField label="مدرسه" required>
+                            <template #default="{ id, invalid }">
+                                <SelectInput :id="id" :invalid="invalid" v-model="membershipForm.school_id" placeholder="مدرسه">
+                                    <option v-for="s in schools" :key="s.id" :value="s.id">{{ s.name }}</option>
+                                </SelectInput>
+                            </template>
+                        </FormField>
+                        <FormField label="نقش" required>
+                            <template #default="{ id, invalid }">
+                                <SelectInput :id="id" :invalid="invalid" v-model="membershipForm.role_id" placeholder="نقش">
+                                    <option v-for="r in roles" :key="r.id" :value="r.id">{{ r.title }}</option>
+                                </SelectInput>
+                            </template>
+                        </FormField>
+                        <FormField label="وضعیت عضویت">
+                            <template #default="{ id }">
+                                <SelectInput :id="id" v-model="membershipForm.status">
+                                    <option value="active">فعال</option>
+                                    <option value="invited">دعوت‌شده</option>
+                                    <option value="suspended">معلق</option>
+                                    <option value="ended">پایان‌یافته</option>
+                                </SelectInput>
+                            </template>
+                        </FormField>
+                        <div class="flex items-end gap-2">
+                            <PrimaryButton :loading="membershipForm.processing" :disabled="membershipForm.processing" block>
+                                ثبت
+                            </PrimaryButton>
+                            <SecondaryButton type="button" @click="closeAssign">بستن</SecondaryButton>
+                        </div>
                     </div>
                 </form>
-            </div>
+            </SectionCard>
 
-            <div v-if="!users.data?.length" class="text-center text-slate-400 py-10">کاربری یافت نشد.</div>
+            <div v-if="!rows.length" class="clay-card flex flex-col items-center justify-center gap-2 py-14 text-center">
+                <Icon name="users" :size="32" class="text-slate-400" />
+                <p class="text-sm text-slate-500">کاربری یافت نشد.</p>
+            </div>
         </div>
     </PanelLayout>
 </template>

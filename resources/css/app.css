@@ -3,7 +3,281 @@
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
+/* ============================================================
+   MADRESE — Claymorphism Design System (Tailwind 4 CSS-first)
+   ============================================================
+   Claymorphism = soft, extruded, light surfaces with:
+   - dual shadows (dark below + light highlight above)
+   - generous rounded corners
+   - subtle inner highlights / inset edges
+   - tactile, pressable, friendly
+   Tokens are defined in @theme so Tailwind generates utilities
+   (bg-brand-600, shadow-clay, rounded-clay, text-brand-700, ...)
+   ============================================================ */
+
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    /* ---- Fonts (Persian first, Latin fallback) ---- */
+    --font-sans: 'Vazirmatn', 'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
+        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+    /* ---- Brand scale (clay-friendly violet/indigo) ---- */
+    --color-brand-50:  #f5f3ff;
+    --color-brand-100: #ede9fe;
+    --color-brand-200: #ddd6fe;
+    --color-brand-300: #c4b5fd;
+    --color-brand-400: #a78bfa;
+    --color-brand-500: #8b5cf6;
+    --color-brand-600: #7c3aed;
+    --color-brand-700: #6d28d9;
+    --color-brand-800: #5b21b6;
+    --color-brand-900: #4c1d95;
+    --color-brand-950: #2e1065;
+
+    /* ---- Clay surfaces ---- */
+    --color-clay-50:  #fbfafd;
+    --color-clay-100: #f4f2fa;
+    --color-clay-200: #ece9f4;
+    --color-clay-300: #ddd9eb;
+    --color-clay-400: #c4bede;
+
+    /* ---- Status colors ---- */
+    --color-success-50: #ecfdf5;  --color-success-500: #10b981;  --color-success-700: #047857;
+    --color-warning-50: #fffbeb;  --color-warning-500: #f59e0b;  --color-warning-700: #b45309;
+    --color-danger-50:  #fef2f2;  --color-danger-500:  #ef4444;  --color-danger-700:  #b91c1c;
+    --color-info-50:    #eff6ff;  --color-info-500:    #3b82f6;  --color-info-700:    #1d4ed8;
+
+    /* ---- Clay radii ---- */
+    --radius-clay-sm: 0.875rem;   /* 14px */
+    --radius-clay:    1.25rem;    /* 20px */
+    --radius-clay-lg: 1.75rem;    /* 28px */
+    --radius-clay-xl: 2.25rem;    /* 36px */
+
+    /* ---- Clay shadows: dual (drop + top highlight) ---- */
+    /* key: soft outer drop shadow on bottom-right + faint highlight top-left */
+    --shadow-clay-xs:
+        4px 4px 8px rgba(76, 29, 149, 0.08),
+        -3px -3px 6px rgba(255, 255, 255, 0.9),
+        inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    --shadow-clay-sm:
+        6px 6px 12px rgba(76, 29, 149, 0.10),
+        -4px -4px 10px rgba(255, 255, 255, 0.95),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    --shadow-clay:
+        8px 8px 18px rgba(76, 29, 149, 0.12),
+        -6px -6px 14px rgba(255, 255, 255, 0.95),
+        inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    --shadow-clay-lg:
+        12px 12px 26px rgba(76, 29, 149, 0.14),
+        -8px -8px 20px rgba(255, 255, 255, 0.95),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    --shadow-clay-xl:
+        18px 18px 40px rgba(76, 29, 149, 0.16),
+        -12px -12px 28px rgba(255, 255, 255, 0.95),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+
+    /* Pressed / inset clay (for active buttons, toggles) */
+    --shadow-clay-inset:
+        inset 5px 5px 10px rgba(76, 29, 149, 0.14),
+        inset -4px -4px 8px rgba(255, 255, 255, 0.9);
+
+    /* Brand-colored glow for primary surfaces */
+    --shadow-clay-brand:
+        8px 8px 18px rgba(124, 58, 237, 0.30),
+        -4px -4px 10px rgba(196, 181, 253, 0.45),
+        inset 0 1px 0 rgba(255, 255, 255, 0.35);
+
+    /* ---- Animations ---- */
+    --animate-pop: pop 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes pop {
+    0%   { transform: scale(0.96); opacity: 0.6; }
+    60%  { transform: scale(1.02); opacity: 1; }
+    100% { transform: scale(1); }
+}
+
+/* ============================================================
+   Base layer: body background (soft clay gradient), selection,
+   scrollbar, focus-visible.
+   ============================================================ */
+@layer base {
+    html {
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+    }
+    body {
+        /* soft violet-tinted clay background */
+        background-color: #f4f2fa;
+        background-image:
+            radial-gradient(1200px 600px at 100% -10%, rgba(167, 139, 250, 0.18), transparent 60%),
+            radial-gradient(900px 500px at -10% 110%, rgba(196, 181, 253, 0.20), transparent 55%);
+        background-attachment: fixed;
+        color: #1f2937;
+        font-feature-settings: 'ss01', 'cv01';
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+    ::selection {
+        background: var(--color-brand-200);
+        color: var(--color-brand-900);
+    }
+    /* Slim, clay-toned scrollbars */
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: var(--color-clay-400) transparent;
+    }
+    *::-webkit-scrollbar { width: 8px; height: 8px; }
+    *::-webkit-scrollbar-track { background: transparent; }
+    *::-webkit-scrollbar-thumb {
+        background: var(--color-clay-300);
+        border-radius: 9999px;
+        border: 2px solid transparent;
+        background-clip: content-box;
+    }
+    *::-webkit-scrollbar-thumb:hover { background: var(--color-clay-400); background-clip: content-box; }
+
+    :focus-visible {
+        outline: 2px solid var(--color-brand-500);
+        outline-offset: 2px;
+        border-radius: 4px;
+    }
+}
+
+/* ============================================================
+   Component layer: reusable clay primitives as utilities.
+   Use: class="clay-card", "clay-input", "clay-btn-primary", ...
+   ============================================================ */
+@layer components {
+    /* Surface card — the workhorse of claymorphism */
+    .clay-card {
+        background-color: var(--color-clay-50);
+        border-radius: var(--radius-clay);
+        box-shadow: var(--shadow-clay);
+        border: 1px solid rgba(255, 255, 255, 0.6);
+    }
+    .clay-card-flat {
+        background-color: var(--color-clay-50);
+        border-radius: var(--radius-clay);
+        box-shadow: var(--shadow-clay-xs);
+        border: 1px solid rgba(255, 255, 255, 0.6);
+    }
+    .clay-card-inset {
+        background-color: var(--color-clay-100);
+        border-radius: var(--radius-clay);
+        box-shadow: var(--shadow-clay-inset);
+    }
+
+    /* Inputs */
+    .clay-input {
+        background-color: var(--color-clay-100);
+        border-radius: var(--radius-clay-sm);
+        box-shadow: var(--shadow-clay-inset);
+        border: 1px solid transparent;
+        color: #1f2937;
+        transition: box-shadow 180ms ease, border-color 180ms ease;
+    }
+    .clay-input::placeholder { color: #9ca3af; }
+    .clay-input:focus {
+        outline: none;
+        border-color: var(--color-brand-400);
+        box-shadow:
+            var(--shadow-clay-inset),
+            0 0 0 3px rgba(139, 92, 246, 0.18);
+    }
+    .clay-input:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    /* Primary button — extruded brand clay */
+    .clay-btn-primary {
+        background: linear-gradient(135deg, var(--color-brand-500), var(--color-brand-700));
+        color: #fff;
+        border-radius: var(--radius-clay-sm);
+        box-shadow: var(--shadow-clay-brand);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        transition: transform 120ms ease, box-shadow 180ms ease, filter 180ms ease;
+    }
+    .clay-btn-primary:hover { filter: brightness(1.06); transform: translateY(-1px); }
+    .clay-btn-primary:active {
+        transform: translateY(0);
+        box-shadow: var(--shadow-clay-inset), inset 0 1px 0 rgba(255,255,255,0.2);
+        filter: brightness(0.96);
+    }
+    .clay-btn-primary:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+        transform: none;
+        filter: grayscale(0.3);
+    }
+
+    /* Secondary button — soft clay surface */
+    .clay-btn-secondary {
+        background-color: var(--color-clay-50);
+        color: #4b5563;
+        border-radius: var(--radius-clay-sm);
+        box-shadow: var(--shadow-clay-sm);
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        transition: transform 120ms ease, box-shadow 180ms ease;
+    }
+    .clay-btn-secondary:hover { transform: translateY(-1px); box-shadow: var(--shadow-clay); }
+    .clay-btn-secondary:active {
+        transform: translateY(0);
+        box-shadow: var(--shadow-clay-inset);
+    }
+    .clay-btn-secondary:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+    /* Ghost button (text-only, no surface) */
+    .clay-btn-ghost {
+        color: var(--color-brand-700);
+        border-radius: var(--radius-clay-sm);
+        transition: background-color 150ms ease, color 150ms ease;
+    }
+    .clay-btn-ghost:hover { background-color: var(--color-brand-50); color: var(--color-brand-800); }
+
+    /* Chip / badge */
+    .clay-chip {
+        background-color: var(--color-clay-100);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.8),
+            0 1px 2px rgba(76, 29, 149, 0.06);
+        border-radius: 9999px;
+    }
+
+    /* Sidebar nav item states */
+    .clay-nav-item {
+        border-radius: var(--radius-clay-sm);
+        transition: background-color 160ms ease, box-shadow 180ms ease, color 160ms ease;
+    }
+    .clay-nav-item:hover { background-color: var(--color-clay-100); }
+    .clay-nav-item-active {
+        background: linear-gradient(135deg, var(--color-brand-500), var(--color-brand-700));
+        color: #fff;
+        box-shadow:
+            4px 4px 10px rgba(124, 58, 237, 0.28),
+            -3px -3px 8px rgba(196, 181, 253, 0.35),
+            inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    }
+}
+
+/* ============================================================
+   Utilities: animation helpers, text-balance.
+   ============================================================ */
+@utility text-balance {
+    text-wrap: balance;
+}
+@utility no-scrollbar {
+    &::-webkit-scrollbar { display: none; }
+    scrollbar-width: none;
+}
+
+/* Hide number input spinners for cleaner OTP/code fields */
+@layer base {
+    input[type='number']::-webkit-inner-spin-button,
+    input[type='number']::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    input[type='number'] { -moz-appearance: textfield; }
 }
