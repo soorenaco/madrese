@@ -3,28 +3,38 @@ import { usePage } from '@inertiajs/vue3';
 import { menuItems } from '../config/menu';
 import { usePermission } from './usePermission';
 
+/**
+ * فیلتر منو بر اساس نقش کاربر.
+ *
+ * قواعد:
+ *   - adminOnly: فقط ادمین پلتفرم
+ *   - roles: کاربر باید حداقل یکی از نقش‌های لیست‌شده را داشته باشد
+ *   - بدون roles و adminOnly: برای همه‌ی کاربران
+ *
+ * ادمین پلتفرم به همه‌ی آیتم‌ها دسترسی دارد (با منطق بای‌پس سرور هم‌خوانی دارد).
+ */
 export function useMenu() {
     const page = usePage();
-    const { can, hasAnyRole, isAdmin } = usePermission();
+    const { hasAnyRole, isAdmin } = usePermission();
 
     const items = computed(() => {
         return menuItems.filter((item) => {
+            // آیتم مخصوص ادمین
             if (item.adminOnly) {
                 return isAdmin.value;
             }
 
+            // ادمین پلتفرم به همه‌ی آیتم‌ها دسترسی دارد
+            if (isAdmin.value) {
+                return true;
+            }
+
+            // آیتم محدود به نقش‌های خاص
             if (item.roles?.length) {
-                const hasRole = hasAnyRole(...item.roles);
-                if (item.permission) {
-                    return hasRole || can(item.permission);
-                }
-                return hasRole;
+                return hasAnyRole(...item.roles);
             }
 
-            if (item.permission) {
-                return can(item.permission);
-            }
-
+            // آیتم عمومی (برای همه)
             return true;
         });
     });
@@ -42,6 +52,11 @@ export function useMenu() {
         const path = currentPath.value;
         if (href === '/dashboard') {
             return path === '/dashboard' || path === '/';
+        }
+        // برای آیتم‌هایی که به /classes اشاره می‌کنند (کلاس‌ها و حضور و غیاب)
+        // هر دو فعال نشوند — فقط دقیقاً /classes یا زیرمسیرهای آن
+        if (href === '/classes') {
+            return path === '/classes' || path.startsWith('/classes/');
         }
         return path === href || path.startsWith(href + '/');
     }

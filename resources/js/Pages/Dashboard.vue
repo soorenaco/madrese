@@ -15,17 +15,33 @@ const { can, hasRole, isAdmin, roles } = usePermission();
 
 const user = computed(() => page.props.auth?.user ?? page.props.user ?? null);
 
-// داده‌های داشبورد — در حال حاضر از props پشتیبانی می‌کند و در صورت نبود، نمونه نمایش می‌دهد.
-const stats = computed(() => page.props.dashboard?.stats ?? {
-    schools: 0,
-    classes: 0,
-    users: 0,
-    onlineClasses: 0,
-});
-const enrollmentTrend = computed(() => page.props.dashboard?.enrollmentTrend ?? [4, 6, 5, 8, 7, 10, 9, 12, 11, 14]);
-const trendLabels = computed(() => page.props.dashboard?.trendLabels ?? ['ف۱','ف۲','ف۳','ف۴','ف۵','ف۶','ف۷','ف۸','ف۹','ف۱۰']);
-const recentActivity = computed(() => page.props.dashboard?.recentActivity ?? []);
-const onlineUpcoming = computed(() => page.props.dashboard?.onlineUpcoming ?? []);
+// داده‌های داشبورد — از سرور به‌صورت واقعی ارسال می‌شود
+const dashboard = computed(() => page.props.dashboard ?? {});
+const stats = computed(() => dashboard.value.stats ?? []);
+const enrollmentTrend = computed(() => dashboard.value.enrollmentTrend ?? []);
+const trendLabels = computed(() => dashboard.value.trendLabels ?? []);
+const recentActivity = computed(() => dashboard.value.recentActivity ?? []);
+const onlineUpcoming = computed(() => dashboard.value.onlineUpcoming ?? []);
+const roleKey = computed(() => dashboard.value.role ?? 'guest');
+
+// عنوان و توضیح بر اساس نقش
+const roleTitle = computed(() => ({
+    admin: 'داشبورد مدیر سامانه',
+    school_manager: 'داشبورد مدیر مدرسه',
+    teacher: 'داشبورد معلم',
+    parent: 'داشبورد والد',
+    student: 'داشبورد دانش‌آموز',
+    guest: 'داشبورد',
+}[roleKey.value] ?? 'داشبورد'));
+
+const roleDesc = computed(() => ({
+    admin: 'نمای کلی کل سامانه و آمار مدارس',
+    school_manager: 'نمای کلی مدارس و کلاس‌های تحت مدیریت شما',
+    teacher: 'کلاس‌ها، جلسات و حضور و غیاب امروز شما',
+    parent: 'وضعیت فرزندان و غیبت‌های اخیر',
+    student: 'برنامه، حضور و غیاب و جلسات امروز شما',
+    guest: 'به پنل خوش آمدید',
+}[roleKey.value] ?? ''));
 
 const greeting = computed(() => {
     const h = new Date().getHours();
@@ -37,12 +53,27 @@ const today = computed(() => new Date().toLocaleDateString('fa-IR', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
 }));
 
+// میانبرهای سریع بر اساس نقش
 const quickActions = computed(() => {
     const list = [];
-    if (can('class.view')) list.push({ label: 'کلاس جدید', href: '/classes/create', icon: 'plus', tone: 'primary' });
-    if (hasRole('school_manager') || isAdmin.value) list.push({ label: 'افزودن معاون/معلم', href: '/users', icon: 'user-plus', tone: 'info' });
-    if (can('online_class.view')) list.push({ label: 'کلاس آنلاین', href: '/online-classes', icon: 'video', tone: 'success' });
-    if (isAdmin.value) list.push({ label: 'تنظیمات سیستم', href: '/settings', icon: 'settings', tone: 'warning' });
+    if (roleKey.value === 'student') {
+        list.push({ label: 'ثبت حضور', href: '/student/check-in', icon: 'check-circle', tone: 'primary' });
+        list.push({ label: 'برنامه هفتگی', href: '/student/schedule', icon: 'calendar', tone: 'info' });
+        list.push({ label: 'کلاس آنلاین', href: '/online-classes', icon: 'video', tone: 'success' });
+        list.push({ label: 'اعلان‌ها', href: '/notifications', icon: 'bell', tone: 'warning' });
+    } else if (roleKey.value === 'parent') {
+        list.push({ label: 'داشبورد فرزند', href: '/parent/dashboard', icon: 'users', tone: 'primary' });
+        list.push({ label: 'اعلان‌ها', href: '/notifications', icon: 'bell', tone: 'info' });
+    } else if (roleKey.value === 'teacher') {
+        list.push({ label: 'کلاس‌ها', href: '/classes', icon: 'class', tone: 'primary' });
+        list.push({ label: 'کلاس آنلاین', href: '/online-classes', icon: 'video', tone: 'success' });
+        list.push({ label: 'اعلان‌ها', href: '/notifications', icon: 'bell', tone: 'warning' });
+    } else if (roleKey.value === 'school_manager' || roleKey.value === 'admin') {
+        if (can('class.view')) list.push({ label: 'کلاس جدید', href: '/classes/create', icon: 'plus', tone: 'primary' });
+        list.push({ label: 'کاربران', href: '/users', icon: 'user-plus', tone: 'info' });
+        list.push({ label: 'کلاس آنلاین', href: '/online-classes', icon: 'video', tone: 'success' });
+        if (isAdmin.value) list.push({ label: 'تنظیمات', href: '/settings', icon: 'settings', tone: 'warning' });
+    }
     return list;
 });
 
@@ -55,11 +86,21 @@ function activityIcon(type) {
         enrollment: 'users',
     }[type] || 'activity';
 }
-function timeAgo(ts) {
-    if (!ts) return '';
-    // ساده‌سازی: اگر فرمت نسبتاً جدید باشد، فقط نمایش می‌دهیم
-    return ts;
-}
+
+// برچسب فارسی روند کلی (با مقایسه هفته‌ی اخیر و هفته‌ی قبل)
+const trendSummary = computed(() => {
+    const t = enrollmentTrend.value;
+    if (! t.length || t.length < 2) return null;
+    const last = t[t.length - 1];
+    const prev = t[t.length - 2];
+    if (prev === 0) return { delta: last > 0 ? '+' + last : '۰', label: 'ثبت‌نام جدید در این هفته' };
+    const pct = Math.round(((last - prev) / prev) * 100);
+    return {
+        delta: (pct >= 0 ? '+' : '') + pct + '٪',
+        label: 'نسبت به هفته قبل',
+        positive: pct >= 0,
+    };
+});
 </script>
 
 <template>
@@ -73,7 +114,7 @@ function timeAgo(ts) {
                 <div>
                     <div class="text-xs text-slate-400">{{ today }}</div>
                     <h1 class="text-xl font-bold text-slate-900">{{ greeting }}، {{ user?.display_name || 'کاربر' }} 👋</h1>
-                    <p class="mt-0.5 text-sm text-slate-500">به پنل مدیریت مدرسه خوش آمدید.</p>
+                    <p class="mt-0.5 text-sm text-slate-500">{{ roleTitle }} — {{ roleDesc }}</p>
                 </div>
             </div>
             <div v-if="roles.length" class="flex flex-wrap gap-1.5">
@@ -85,80 +126,82 @@ function timeAgo(ts) {
             </div>
         </div>
 
-        <!-- کارت‌های آماری -->
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <!-- کارت‌های آماری (پویا بر اساس نقش) -->
+        <div v-if="stats.length" class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
-                v-if="isAdmin || hasRole('school_manager')"
-                label="مدارس"
-                :value="stats.schools"
-                icon="building"
-                variant="primary"
-                :trend="8"
-                trend-label="نسبت به ماه قبل"
-                :to="hasRole('school_manager') || isAdmin ? '/school' : undefined"
+                v-for="stat in stats"
+                :key="stat.key"
+                :label="stat.label"
+                :value="stat.value"
+                :variant="stat.variant || 'neutral'"
+                :hint="stat.hint"
+                :to="stat.to"
             >
-                <template #icon><Icon name="building" :size="22" /></template>
-            </StatCard>
-            <StatCard
-                label="کلاس‌ها"
-                :value="stats.classes"
-                variant="info"
-                :trend="12"
-                trend-label="نسبت به ماه قبل"
-                to="/classes"
-            >
-                <template #icon><Icon name="layers" :size="22" /></template>
-            </StatCard>
-            <StatCard
-                label="کاربران"
-                :value="stats.users"
-                variant="success"
-                :trend="5"
-                trend-label="نسبت به ماه قبل"
-                to="/users"
-            >
-                <template #icon><Icon name="users" :size="22" /></template>
-            </StatCard>
-            <StatCard
-                label="کلاس‌های آنلاین"
-                :value="stats.onlineClasses"
-                variant="warning"
-                :trend="-3"
-                trend-label="نسبت به هفته قبل"
-                to="/online-classes"
-            >
-                <template #icon><Icon name="video" :size="22" /></template>
+                <template #icon>
+                    <Icon :name="stat.icon || 'activity'" :size="22" />
+                </template>
             </StatCard>
         </div>
 
-        <!-- نمودار + میانبرها -->
-        <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <!-- نمودار + میانبرها (فقط برای ادمین/مدیر که روند ثبت‌نام دارند) -->
+        <div v-if="roleKey === 'admin' || roleKey === 'school_manager'" class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
             <!-- نمودار روند ثبت‌نام -->
             <SectionCard
                 class="lg:col-span-2"
                 title="روند ثبت‌نام"
                 description="تعداد ثبت‌نام‌های جدید در ۱۰ هفته گذشته"
             >
-                <template #actions>
-                    <StatusBadge variant="success">
-                        <Icon name="trending-up" :size="12" />
-                        +۲۴٪
+                <template v-if="trendSummary" #actions>
+                    <StatusBadge :variant="trendSummary.positive ? 'success' : 'danger'">
+                        <Icon :name="trendSummary.positive ? 'trending-up' : 'trending-down'" :size="12" />
+                        {{ trendSummary.delta }}
                     </StatusBadge>
                 </template>
                 <div class="pt-2">
                     <MiniChart
+                        v-if="enrollmentTrend.length"
                         :data="enrollmentTrend"
                         :labels="trendLabels"
                         :height="180"
                         type="area"
                         color="#7c3aed"
                     />
+                    <div v-else class="flex items-center justify-center py-12 text-sm text-slate-400">
+                        هنوز داده‌ای ثبت نشده است.
+                    </div>
                 </div>
             </SectionCard>
 
             <!-- میانبرهای سریع -->
             <SectionCard title="میانبرهای سریع" description="دسترسی پرکاربرد">
                 <div class="grid grid-cols-2 gap-3">
+                    <Link
+                        v-for="action in quickActions"
+                        :key="action.href"
+                        :href="action.href"
+                        class="clay-card-flat flex flex-col items-center gap-2 p-4 text-center transition-transform hover:-translate-y-0.5"
+                    >
+                        <span
+                            :class="[
+                                'flex h-10 w-10 items-center justify-center rounded-clay-sm',
+                                action.tone === 'primary' && 'bg-brand-100 text-brand-700',
+                                action.tone === 'info' && 'bg-info-50 text-info-700',
+                                action.tone === 'success' && 'bg-success-50 text-success-700',
+                                action.tone === 'warning' && 'bg-warning-50 text-warning-700',
+                            ]"
+                        >
+                            <Icon :name="action.icon" :size="20" />
+                        </span>
+                        <span class="text-xs font-medium text-slate-600">{{ action.label }}</span>
+                    </Link>
+                </div>
+            </SectionCard>
+        </div>
+
+        <!-- میانبرهای سریع برای سایر نقش‌ها -->
+        <div v-else-if="quickActions.length" class="mt-6">
+            <SectionCard title="میانبرهای سریع" description="دسترسی پرکاربرد">
+                <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     <Link
                         v-for="action in quickActions"
                         :key="action.href"
@@ -196,7 +239,7 @@ function timeAgo(ts) {
                         </span>
                         <div class="min-w-0 flex-1">
                             <p class="text-sm text-slate-700">{{ act.message }}</p>
-                            <p class="text-xs text-slate-400 mt-0.5">{{ timeAgo(act.time) }}</p>
+                            <p class="text-xs text-slate-400 mt-0.5">{{ act.time }}</p>
                         </div>
                     </li>
                 </ul>
@@ -208,7 +251,7 @@ function timeAgo(ts) {
                 </div>
             </SectionCard>
 
-            <SectionCard title="جلسات آنلاین پیش‌رو" description="برنامه‌ی کلاس‌های آنلاین بعدی">
+            <SectionCard title="کلاس‌های آنلاین" description="کلاس‌های فعال یا اخیراً برگزارشده">
                 <ul v-if="onlineUpcoming.length" class="space-y-3">
                     <li
                         v-for="(sess, i) in onlineUpcoming"
@@ -220,7 +263,7 @@ function timeAgo(ts) {
                         </span>
                         <div class="min-w-0 flex-1">
                             <p class="truncate text-sm font-medium text-slate-800">{{ sess.title }}</p>
-                            <p class="text-xs text-slate-400">{{ sess.when }}</p>
+                            <p class="text-xs text-slate-400" dir="ltr">{{ sess.when }}</p>
                         </div>
                         <Link
                             :href="sess.href || '/online-classes'"
@@ -234,7 +277,7 @@ function timeAgo(ts) {
                     <div class="clay-card-flat mb-3 flex h-12 w-12 items-center justify-center text-slate-400">
                         <Icon name="calendar" :size="22" />
                     </div>
-                    <p class="text-sm text-slate-500">جلسه‌ی آنلاین پیش‌رویی وجود ندارد.</p>
+                    <p class="text-sm text-slate-500">هنوز کلاس آنلاینی برگزار نشده است.</p>
                     <Link href="/online-classes" class="clay-btn-ghost mt-3 px-3 py-1.5 text-xs">
                         مشاهده همه
                     </Link>

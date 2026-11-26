@@ -1,19 +1,26 @@
 /**
- * آیتم‌های منوی پنل.
- * فیلتر نمایش فقط برای UI است؛ دسترسی واقعی باید سمت سرور اعمال شود.
+ * آیتم‌های منوی پنل — بر اساس نقش کاربر.
+ *
+ * قواعد:
+ *   - هر آیتم فقط برای نقش‌های لیست‌شده در `roles` نمایش داده می‌شود.
+ *   - اگر `roles` تعریف نشده باشد، یعنی آیتم برای همه‌ی نقش‌هاست (مثل اعلان‌ها).
+ *   - اگر `adminOnly: true` باشد، فقط برای ادمین پلتفرم است.
+ *   - هیچ آیتمی نباید برای کاربری نمایش داده شود که به مسیر آن دسترسی ندارد؛
+ *     دسترسی واقعی سمت سرور با middleware `role:` اعمال می‌شود.
+ *
+ * توجه: نقش‌ها به‌جای منطق «یا»، به‌صورت «دقیقاً این نقش‌ها» در نظر گرفته می‌شوند.
+ * ادمین پلتفرم به همه‌ی آیتم‌ها دسترسی دارد.
  */
 export const menuItems = [
+    // ─── داشبورد اصلی (برای همه) ───
     {
         label: 'داشبورد',
         href: '/dashboard',
         icon: 'home',
+        // همه‌ی نقش‌ها — هیچ محدودیتی ندارد
     },
-    {
-        label: 'داشبورد دانش‌آموز',
-        href: '/student/dashboard',
-        icon: 'home',
-        roles: ['student'],
-    },
+
+    // ─── دانش‌آموز ───
     {
         label: 'برنامه هفتگی من',
         href: '/student/schedule',
@@ -27,32 +34,37 @@ export const menuItems = [
         roles: ['student'],
     },
     {
+        label: 'کلاس‌های آنلاین',
+        href: '/online-classes',
+        icon: 'video',
+        roles: ['student', 'teacher', 'school_manager', 'admin'],
+    },
+
+    // ─── والد ───
+    {
         label: 'داشبورد والد',
         href: '/parent/dashboard',
         icon: 'users',
         roles: ['parent'],
     },
-    {
-        label: 'اعلان‌ها',
-        href: '/notifications',
-        icon: 'bell',
-    },
+
+    // ─── معلم / مدیر / ادمین ───
     {
         label: 'کلاس‌ها',
         href: '/classes',
         icon: 'class',
-        permission: 'class.view',
         roles: ['teacher', 'school_manager', 'admin'],
     },
     {
         label: 'حضور و غیاب',
         href: '/classes',
         icon: 'check-circle',
-        permission: 'attendance.record',
         roles: ['teacher', 'school_manager', 'admin'],
     },
+
+    // ─── مدیر مدرسه / ادمین ───
     {
-        label: 'مدرسه',
+        label: 'مدیریت مدرسه',
         href: '/school',
         icon: 'school',
         roles: ['school_manager', 'admin'],
@@ -61,20 +73,22 @@ export const menuItems = [
         label: 'کاربران',
         href: '/users',
         icon: 'users',
-        permission: 'user.invite',
         roles: ['school_manager', 'admin'],
     },
+
+    // ─── فقط ادمین پلتفرم ───
     {
         label: 'تنظیمات سیستم',
         href: '/settings',
         icon: 'settings',
         adminOnly: true,
     },
+
+    // ─── اعلان‌ها (برای همه) ───
     {
-        label: 'کلاس آنلاین',
-        href: '/online-classes',
-        icon: 'video',
-        permission: 'online_class.view',
-        roles: ['student', 'teacher', 'school_manager', 'admin'],
+        label: 'اعلان‌ها',
+        href: '/notifications',
+        icon: 'bell',
+        // همه — اعلان‌ها برای هر کاربری قابل مشاهده است
     },
 ];
