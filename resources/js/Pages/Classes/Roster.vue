@@ -79,12 +79,22 @@ function statusLabel(s) {
     <PanelLayout>
         <div class="mb-6">
             <Link href="/classes" class="text-sm text-violet-700 hover:underline">← بازگشت به کلاس‌ها</Link>
-            <h1 class="text-xl font-bold mt-2">اعضای کلاس: {{ classItem.name }}</h1>
-            <p class="text-sm text-slate-500">
-                {{ classItem.school?.name }}
-                <span v-if="classItem.grade"> · پایه {{ classItem.grade }}</span>
-                <span v-if="classItem.academic_year"> · {{ classItem.academic_year }}</span>
-            </p>
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mt-2">
+                <div>
+                    <h1 class="text-xl font-bold">اعضای کلاس: {{ classItem.name }}</h1>
+                    <p class="text-sm text-slate-500">
+                        {{ classItem.school?.name }}
+                        <span v-if="classItem.grade"> · پایه {{ classItem.grade }}</span>
+                        <span v-if="classItem.academic_year"> · {{ classItem.academic_year }}</span>
+                    </p>
+                </div>
+                <Link
+                    :href="`/classes/${classItem.id}/attendance`"
+                    class="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-700 text-white text-sm font-medium px-4 py-2 hover:bg-violet-800"
+                >
+                    رفتن به حضور و غیاب ←
+                </Link>
+            </div>
         </div>
 
         <div v-if="page.props.flash?.success" class="mb-4 rounded-xl bg-emerald-50 text-emerald-800 text-sm px-4 py-3 border border-emerald-100">

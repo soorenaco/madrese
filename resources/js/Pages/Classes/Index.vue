@@ -115,6 +115,9 @@ const rows = props.classes.data || [];
                                     <Link :href="`/classes/${item.id}/roster`" class="clay-btn-ghost px-2 py-1 text-xs">
                                         <Icon name="users" :size="14" /> اعضا
                                     </Link>
+                                    <Link :href="`/classes/${item.id}/attendance`" class="clay-btn-ghost px-2 py-1 text-xs">
+                                        <Icon name="check-circle" :size="14" /> حضور و غیاب
+                                    </Link>
                                     <Link :href="`/classes/${item.id}/online`" class="clay-btn-ghost px-2 py-1 text-xs">
                                         <Icon name="video" :size="14" /> آنلاین
                                     </Link>

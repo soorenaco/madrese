@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Modules\School\Models\School;
 use App\Modules\Auth\Models\User;
+use App\Modules\Attendance\Models\Attendance;
 
 class SchoolClass extends Model
 {
@@ -42,6 +43,11 @@ class SchoolClass extends Model
     public function scheduleSlots(): HasMany
     {
         return $this->hasMany(ClassScheduleSlot::class, 'school_class_id');
+    }
+
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(Attendance::class, 'school_class_id');
     }
 
     public function isActive(): bool

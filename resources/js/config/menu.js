@@ -16,6 +16,13 @@ export const menuItems = [
         roles: ['teacher', 'school_manager', 'admin'],
     },
     {
+        label: 'حضور و غیاب',
+        href: '/classes',
+        icon: 'check-circle',
+        permission: 'attendance.record',
+        roles: ['teacher', 'school_manager', 'admin'],
+    },
+    {
         label: 'مدرسه',
         href: '/school',
         icon: 'school',
