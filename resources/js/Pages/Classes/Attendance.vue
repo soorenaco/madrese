@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import PanelLayout from '../../Layouts/PanelLayout.vue';
 import PageHeader from '../../Components/Ui/PageHeader.vue';
@@ -21,6 +21,7 @@ const props = defineProps({
     recordedDays: { type: Array, default: () => [] }, // [{date, slot, recorded}]
     statuses: { type: Array, default: () => [] },    // [{code,label,variant}]
     canRecord: { type: Boolean, default: true },
+    activeCode: { type: Object, default: null },     // {code, expires_at, generated_at}
 });
 
 const { formatJalali, formatJalaliShort, weekdayName, recentDays, toPersianDigits } = useJalali();
@@ -30,6 +31,60 @@ const page = usePage();
 // وضعیت محلی هر دانش‌آموز: { [userId]: { status, note } }
 const localState = ref({});
 const saving = ref(false);
+
+// ─── کد چک‌این دانش‌آموز ───
+const generatingCode = ref(false);
+const codeExpiresIn = ref(null); // ثانیه‌ی باقی‌مانده
+let codeTimer = null;
+
+function updateCodeCountdown() {
+    if (!props.activeCode?.expires_at) {
+        codeExpiresIn.value = null;
+        return;
+    }
+    const expires = new Date(props.activeCode.expires_at).getTime();
+    const now = Date.now();
+    const diff = Math.floor((expires - now) / 1000);
+    codeExpiresIn.value = diff > 0 ? diff : 0;
+}
+
+onMounted(() => {
+    updateCodeCountdown();
+    codeTimer = setInterval(updateCodeCountdown, 1000);
+});
+onUnmounted(() => {
+    if (codeTimer) clearInterval(codeTimer);
+});
+watch(() => props.activeCode?.expires_at, updateCodeCountdown);
+
+function generateCode() {
+    generatingCode.value = true;
+    router.post(
+        `/classes/${props.classItem.id}/attendance/code`,
+        { session_date: props.sessionDate, slot: props.slot },
+        {
+            preserveScroll: true,
+            onFinish: () => (generatingCode.value = false),
+            onSuccess: () => toast.success('کد چک‌این ساخته شد.'),
+            onError: () => toast.error('ساخت کد ناموفق بود.'),
+        },
+    );
+}
+
+const codeDisplay = computed(() => {
+    if (!props.activeCode?.code) return '';
+    return props.activeCode.code.split('').join(' ');
+});
+
+const codeMinutes = computed(() => {
+    if (codeExpiresIn.value === null) return null;
+    return Math.floor(codeExpiresIn.value / 60);
+});
+const codeSeconds = computed(() => {
+    if (codeExpiresIn.value === null) return null;
+    return codeExpiresIn.value % 60;
+});
+const codeExpired = computed(() => codeExpiresIn.value !== null && codeExpiresIn.value <= 0);
 
 // مقداردهی اولیه از داده‌ی سرور
 function initLocalState() {
@@ -272,6 +327,63 @@ const statusLabel = computed(() => {
                 <template #icon><Icon name="info" :size="22" /></template>
             </StatCard>
         </div>
+
+        <!-- کارت کد چک‌این دانش‌آموز -->
+        <SectionCard class="mt-6" flat>
+            <div class="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="clay-card-flat flex h-12 w-12 items-center justify-center text-brand-600">
+                        <Icon name="check-circle" :size="24" />
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-bold text-slate-800">کد چک‌این دانش‌آموز</h2>
+                        <p class="text-xs text-slate-500">دانش‌آموزان این کد را در پنل خود وارد می‌کنند تا حضورشان ثبت شود.</p>
+                    </div>
+                </div>
+                <PrimaryButton :loading="generatingCode" :disabled="generatingCode" @click="generateCode">
+                    <Icon name="refresh" :size="16" />
+                    {{ activeCode && !codeExpired ? 'تولید کد جدید' : 'تولید کد جلسه' }}
+                </PrimaryButton>
+            </div>
+
+            <!-- نمایش کد فعال -->
+            <div v-if="activeCode && !codeExpired" class="mt-4 rounded-clay bg-gradient-to-l from-brand-50 to-clay-100 p-4">
+                <div class="flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
+                    <div class="text-center sm:text-right">
+                        <div class="text-xs text-slate-500 mb-1">کد فعال این جلسه:</div>
+                        <div class="font-mono text-3xl font-black tracking-[0.3em] text-brand-700" dir="ltr">
+                            {{ codeDisplay }}
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-xs text-slate-500 mb-1">اعتبار باقی‌مانده:</div>
+                        <div
+                            class="font-mono text-2xl font-bold"
+                            :class="codeExpiresIn < 60 ? 'text-danger-600' : 'text-success-600'"
+                        >
+                            {{ toPersianDigits(String(codeMinutes).padStart(2, '0')) }}:{{ toPersianDigits(String(codeSeconds).padStart(2, '0')) }}
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-3 text-center text-xs text-slate-400">
+                    💡 این کد را روی تخته بنویسید یا در گروه کلاس اعلام کنید.
+                </div>
+            </div>
+
+            <!-- کد منقضی شده -->
+            <div v-else-if="activeCode && codeExpired" class="mt-4 rounded-clay bg-danger-50 p-4 text-center">
+                <div class="text-sm text-danger-700">
+                    <Icon name="alert-triangle" :size="16" /> کد منقضی شده است. برای چک‌این دانش‌آموزان، کد جدید بسازید.
+                </div>
+            </div>
+
+            <!-- حالت اولیه -->
+            <div v-else class="mt-4 rounded-clay bg-clay-100/60 p-4 text-center">
+                <div class="text-sm text-slate-500">
+                    هنوز کدی برای این جلسه ساخته نشده. روی «تولید کد جلسه» بزنید.
+                </div>
+            </div>
+        </SectionCard>
 
         <!-- نوار ابزار: ست‌کردن گروهی + ذخیره -->
         <div class="mt-6 mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

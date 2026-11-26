@@ -39,9 +39,9 @@ export function useToast() {
     return {
         state,
         success: (m, d) => push(m, 'success', d),
-        error: (m, d) => push(m, 'danger', d),
+        error:   (m, d) => push(m, 'danger', d),
         warning: (m, d) => push(m, 'warning', d),
-        info: (m, d) => push(m, 'info', d),
+        info:    (m, d) => push(m, 'info', d),
         dismiss,
         clear,
     };

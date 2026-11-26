@@ -12,6 +12,7 @@ const { items, isActive } = useMenu();
 const auth = computed(() => page.props.auth);
 const user = computed(() => auth.value?.user ?? null);
 const roles = computed(() => auth.value?.roles ?? []);
+const unreadCount = computed(() => auth.value?.unread_notifications_count ?? 0);
 
 const sidebarOpen = ref(false);
 const navigating = ref(false);
@@ -47,6 +48,9 @@ const iconMap = {
     users: 'users',
     settings: 'settings',
     video: 'video',
+    'check-circle': 'check-circle',
+    calendar: 'calendar',
+    bell: 'bell',
 };
 
 const greeting = computed(() => {
@@ -84,12 +88,47 @@ const greeting = computed(() => {
                 <div class="font-semibold text-sm truncate">
                     {{ user?.display_name || 'پنل' }}
                 </div>
+                <div class="flex items-center gap-1">
+                    <Link href="/notifications" class="relative flex h-9 w-9 items-center justify-center" aria-label="اعلان‌ها">
+                        <Icon name="bell" :size="20" />
+                        <span
+                            v-if="unreadCount > 0"
+                            class="absolute -top-0.5 -left-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger-500 px-1 text-[9px] font-bold text-white"
+                        >{{ unreadCount > 9 ? '۹+' : unreadCount }}</span>
+                    </Link>
+                    <button
+                        type="button"
+                        class="clay-btn-ghost flex items-center gap-1.5 px-2 py-1.5 text-sm"
+                        @click="logout"
+                    >
+                        <Icon name="logout" :size="18" />
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- هدر دسکتاپ -->
+        <header class="hidden lg:flex sticky top-0 z-30 items-center justify-between gap-4 border-b border-clay-200/70 bg-clay-50/80 px-8 py-3 backdrop-blur">
+            <div class="text-sm font-semibold text-slate-600">{{ greeting }}، {{ user?.display_name || 'کاربر' }} 👋</div>
+            <div class="flex items-center gap-2">
+                <Link
+                    href="/notifications"
+                    class="clay-card-flat relative flex h-10 w-10 items-center justify-center text-slate-600 transition hover:text-brand-600"
+                    aria-label="اعلان‌ها"
+                >
+                    <Icon name="bell" :size="20" />
+                    <span
+                        v-if="unreadCount > 0"
+                        class="absolute -top-1 -left-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-danger-500 px-1.5 text-[10px] font-bold text-white"
+                    >{{ unreadCount > 9 ? '۹+' : unreadCount }}</span>
+                </Link>
                 <button
                     type="button"
-                    class="clay-btn-ghost flex items-center gap-1.5 px-2 py-1.5 text-sm"
+                    class="clay-btn-ghost flex items-center gap-1.5 px-3 py-2 text-sm"
                     @click="logout"
                 >
-                    <Icon name="logout" :size="18" />
+                    <Icon name="logout" :size="16" />
+                    خروج
                 </button>
             </div>
         </header>

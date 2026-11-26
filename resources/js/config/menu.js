@@ -9,6 +9,35 @@ export const menuItems = [
         icon: 'home',
     },
     {
+        label: 'داشبورد دانش‌آموز',
+        href: '/student/dashboard',
+        icon: 'home',
+        roles: ['student'],
+    },
+    {
+        label: 'برنامه هفتگی من',
+        href: '/student/schedule',
+        icon: 'calendar',
+        roles: ['student'],
+    },
+    {
+        label: 'ثبت حضور با کد',
+        href: '/student/check-in',
+        icon: 'check-circle',
+        roles: ['student'],
+    },
+    {
+        label: 'داشبورد والد',
+        href: '/parent/dashboard',
+        icon: 'users',
+        roles: ['parent'],
+    },
+    {
+        label: 'اعلان‌ها',
+        href: '/notifications',
+        icon: 'bell',
+    },
+    {
         label: 'کلاس‌ها',
         href: '/classes',
         icon: 'class',
